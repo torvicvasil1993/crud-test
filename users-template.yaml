@@ -175,10 +175,6 @@ objects:
           app: ${APP_NAME}
           deploymentconfig: ${APP_NAME}
       spec:
-        volumes:
-          - name: users-pvc
-            persistentVolumeClaim:
-              claimName: users-pvc
         containers:
         - env:
           - name: DATABASE_NAME
@@ -204,6 +200,17 @@ objects:
         dnsPolicy: ClusterFirst
         securityContext: {}
         schedulerName: default-scheduler
+    test: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - ${APP_NAME}
+        from:
+          kind: ImageStreamTag
+          name: ${APP_NAME}:latest
+      type: ImageChange    
 - kind: Service
   apiVersion: v1
   metadata:
@@ -272,3 +279,8 @@ parameters:
   description: Password to access the database
   generate: expression
   from: '[a-zA-Z0-9]{16}'
+- name: SECRET
+  displayName: Webhook Secret
+  description: Secret for webhooks
+  generate: expression
+  from: '[a-zA-Z0-9]{40}'  
