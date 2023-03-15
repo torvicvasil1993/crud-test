@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+""" from flask import Flask, request, jsonify
 from flask_mysqldb import MySQL
 import os
 
@@ -55,6 +55,24 @@ def delete_user(id):
     mysql.connection.commit()
     cur.close()
     return jsonify({"message": "User deleted successfully"})
+
+if __name__ == '__main__':
+    app.run()
+ """
+
+
+
+from flask import Flask
+import datetime
+import os
+
+app = Flask(__name__)
+
+@app.route('/')
+def hello():
+    now = datetime.datetime.now()
+    current_timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
+    return 'Current timestamp: ' + current_timestamp + '<br/>'
 
 if __name__ == '__main__':
     app.run()
