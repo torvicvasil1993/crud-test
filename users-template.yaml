@@ -110,6 +110,16 @@ objects:
   spec:
     template:
       spec:
+        readinessProbe:
+        exec:
+          command:
+            - /bin/bash
+            - -c
+            - |
+              mysql -h 127.0.0.1 -u <username> -p<password> -e "SELECT 1" > /dev/null
+              if [ $? != 0 ]; then exit 1; fi;
+        initialDelaySeconds: 10
+        periodSeconds: 5
         containers:
         - name: usersdb
           image: mysql:latest
