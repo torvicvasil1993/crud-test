@@ -235,6 +235,7 @@ objects:
           namespace: openshift
       type: ImageChange
 - kind: Service
+  apiVersion: v1
   metadata:
     annotations:
     labels:
