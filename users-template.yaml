@@ -137,49 +137,34 @@ objects:
 - kind: DeploymentConfig
   apiVersion: apps.openshift.io/v1
   metadata:
-    name: ${APP_NAME}
-    namespace: ${PROJECT_NAME}
+    annotations:
     labels:
-      app: ${APP_NAME}
+      app: usersapp
+    name: usersapp
   spec:
-    strategy:
-      type: Rolling
-      rollingParams:
-        updatePeriodSeconds: 1
-        intervalSeconds: 1
-        timeoutSeconds: 600
-        maxUnavailable: 25%
-        maxSurge: 25%
-      resources: {}
-      activeDeadlineSeconds: 21600
-    triggers:
-      - type: ImageChange
-        imageChangeParams:
-          automatic: true
-          containerNames:
-            - ${APP_NAME}
-          from:
-            kind: ImageStreamTag
-            namespace: ${PROJECT_NAME}
-            name: '${APP_NAME}:latest'
-      - type: ConfigChange
     replicas: 1
     revisionHistoryLimit: 10
-    test: false
     selector:
-      app: ${APP_NAME}
-      deploymentconfig: ${APP_NAME}
+      app: usersapp
+      deploymentconfig: usersapp
+    strategy:
+      activeDeadlineSeconds: 21600
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
     template:
       metadata:
+        annotations:
         labels:
-          app: ${APP_NAME}
-          deploymentconfig: ${APP_NAME}
+          app: usersapp
+          deploymentconfig: usersapp
       spec:
         containers:
-          - name: ${APP_NAME}
-            resources: {}            
-            terminationMessagePath: /dev/termination-log
-            terminationMessagePolicy: File
         - env:
           - name: DATABASE_NAME
             value: usersdb
@@ -190,17 +175,31 @@ objects:
           - name: DATABASE_USER
             value: usersapp
           imagePullPolicy: Always
-          name: quotesapi
+          name: usersapp
           ports:
           - containerPort: 8080
             protocol: TCP
           - containerPort: 8443
             protocol: TCP
-        restartPolicy: Always
-        terminationGracePeriodSeconds: 30
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
         dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
         securityContext: {}
-        schedulerName: default-scheduler    
+        terminationGracePeriodSeconds: 30
+    test: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - quotesapi
+        from:
+          kind: ImageStreamTag
+          name: quotesapi:latest
+      type: ImageChange  
 - kind: Service
   apiVersion: v1
   metadata:
