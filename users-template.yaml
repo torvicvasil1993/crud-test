@@ -4,7 +4,7 @@ metadata:
   name: users-app-template
 objects:
 - kind: ImageStream
-  apiVersion: v1
+  apiVersion: image.openshift.io/v1
   metadata:
     annotations:
       description: Keeps track of changes in the application image
@@ -47,7 +47,7 @@ objects:
       - type: ConfigChange
     runPolicy: Serial
 - kind: DeploymentConfig
-  apiVersion: v1
+  apiVersion: apps.openshift.io/v1
   metadata:
     name: ${APP_NAME}
     namespace: ${PROJECT_NAME}
@@ -151,7 +151,8 @@ objects:
     port:
       targetPort: 8080-tcp
   wildcardPolicy: None
-- kind: PersistentVolumeClaim
+- apiVersion: v1
+  kind: PersistentVolumeClaim
   metadata:
     annotations:
     name: usersdb-claim
@@ -164,6 +165,7 @@ objects:
     storageClassName: gp2
     volumeMode: Filesystem
 - kind: DeploymentConfig
+  apiVersion: apps.openshift.io/v1
   metadata:
     annotations:
     labels:
