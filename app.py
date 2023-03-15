@@ -1,68 +1,52 @@
-""" from flask import Flask, request, jsonify
-from flask_mysqldb import MySQL
+from flask import Flask, jsonify
+import mysql.connector
 import os
-
 
 app = Flask(__name__)
 
-app.config['MYSQL_HOST'] = os.environ.get('DATABASE_SERVICE_NAME')
-app.config['MYSQL_USER'] = os.environ.get('DATABASE_USER')
-app.config['MYSQL_PASSWORD'] = os.environ.get('DATABASE_PASSWORD')
-app.config['MYSQL_DB'] = os.environ.get('DATABASE_NAME')
+def get_db():
+    return mysql.connector.connect(
+        host=os.environ.get('DATABASE_SERVICE_NAME'),
+        user=os.environ.get('DATABASE_USER'),
+        password=os.environ.get('DATABASE_PASSWORD'),
+        database=os.environ.get('DATABASE_NAME')
+    )
 
-mysql = MySQL(app)
-
-@app.route('/users', methods=['GET'])
-def get_users():
-    cur = mysql.connection.cursor()
-    cur.execute("SELECT * FROM users")
-    users = cur.fetchall()
-    cur.close()
+@app.route('/')
+def index():
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute("SELECT * FROM users")
+    users = cursor.fetchall()
+    cursor.close()
+    db.close()
     return jsonify(users)
-
-@app.route('/users/<int:id>', methods=['GET'])
-def get_user(id):
-    cur = mysql.connection.cursor()
-    cur.execute(f"SELECT * FROM users WHERE id = {id}")
-    user = cur.fetchone()
-    cur.close()
-    return jsonify(user)
 
 @app.route('/users', methods=['POST'])
 def add_user():
-    name = request.json['name']
-    email = request.json['email']
-    cur = mysql.connection.cursor()
-    cur.execute(f"INSERT INTO users (name, email) VALUES ('{name}', '{email}')")
-    mysql.connection.commit()
-    cur.close()
-    return jsonify({"message": "User added successfully"})
+    data = request.get_json()
+    name = data['name']
+    email = data['email']
 
-@app.route('/users/<int:id>', methods=['PUT'])
-def update_user(id):
-    name = request.json['name']
-    email = request.json['email']
-    cur = mysql.connection.cursor()
-    cur.execute(f"UPDATE users SET name = '{name}', email = '{email}' WHERE id = {id}")
-    mysql.connection.commit()
-    cur.close()
-    return jsonify({"message": "User updated successfully"})
+    db = get_db()
+    cursor = db.cursor()
+    query = "INSERT INTO users (name, email) VALUES (%s, %s)"
+    cursor.execute(query, (name, email))
+    db.commit()
+    cursor.close()
+    db.close()
 
-@app.route('/users/<int:id>', methods=['DELETE'])
-def delete_user(id):
-    cur = mysql.connection.cursor()
-    cur.execute(f"DELETE FROM users WHERE id = {id}")
-    mysql.connection.commit()
-    cur.close()
-    return jsonify({"message": "User deleted successfully"})
+    return jsonify({'message': 'User added successfully'})
 
 if __name__ == '__main__':
     app.run()
- """
 
 
 
-from flask import Flask
+
+
+
+""" from flask import Flask
 import datetime
 import os
 
@@ -75,4 +59,4 @@ def hello():
     return 'Current timestamp: ' + current_timestamp + '<br/>'
 
 if __name__ == '__main__':
-    app.run()
+    app.run() """
