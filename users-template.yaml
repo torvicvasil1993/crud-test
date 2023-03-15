@@ -94,13 +94,13 @@ objects:
         containers:
           - env:
             - name: DATABASE_NAME
-              value: usersdb
+              value: users-db
             - name: DATABASE_PASSWORD
               value: ${PASSWORD}
             - name: DATABASE_SERVICE_NAME
-              value: usersdb
+              value: users-db
             - name: DATABASE_USER
-              value: usersapp
+              value: users-app
           - name: ${APP_NAME}
             ports:
             - containerPort: 8080
@@ -169,14 +169,14 @@ objects:
   metadata:
     annotations:
     labels:
-      app: usersdb
-    name: usersdb
+      app: users-db
+    name: users-db
   spec:
     replicas: 1
     revisionHistoryLimit: 10
     selector:
-      app: usersdb
-      deploymentconfig: usersdb
+      app: users-db
+      deploymentconfig: users-db
     strategy:
       activeDeadlineSeconds: 21600
       resources: {}
@@ -191,19 +191,19 @@ objects:
       metadata:
         annotations:
         labels:
-          app: usersdb
-          deploymentconfig: usersdb
+          app: users-db
+          deploymentconfig: users-db
       spec:
         containers:
         - env:
           - name: MYSQL_DATABASE
-            value: usersdb
+            value: users-db
           - name: MYSQL_PASSWORD
             value: ${PASSWORD}
           - name: MYSQL_USER
-            value: usersapp
+            value: users-app
           imagePullPolicy: IfNotPresent
-          name: usersdb
+          name: users-db
           ports:
           - containerPort: 3306
             protocol: TCP
@@ -212,23 +212,23 @@ objects:
           terminationMessagePolicy: File
           volumeMounts:
           - mountPath: /var/lib/mysql/data
-            name: usersdb-volume-1
+            name: users-db-volume-1
         dnsPolicy: ClusterFirst
         restartPolicy: Always
         schedulerName: default-scheduler
         securityContext: {}
         terminationGracePeriodSeconds: 30
         volumes:
-        - name: usersdb-volume-1
+        - name: users-db-volume-1
           persistentVolumeClaim:
-            claimName: usersdb-claim
+            claimName: users-db-claim
     test: false
     triggers:
     - type: ConfigChange
     - imageChangeParams:
         automatic: true
         containerNames:
-        - usersdb
+        - users-db
         from:
           kind: ImageStreamTag
           name: mysql:latest
@@ -239,8 +239,8 @@ objects:
   metadata:
     annotations:
     labels:
-      app: usersdb
-    name: usersdb
+      app: users-db
+    name: users-db
   spec:
     ports:
     - name: 3306-tcp
@@ -248,8 +248,8 @@ objects:
       protocol: TCP
       targetPort: 3306
     selector:
-      app: usersdb
-      deploymentconfig: usersdb
+      app: users-db
+      deploymentconfig: users-db
     sessionAffinity: None
     type: ClusterIP
 parameters:
