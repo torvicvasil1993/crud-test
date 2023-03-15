@@ -3,6 +3,94 @@ kind: Template
 metadata:
   name: usersapp-template
 objects:
+- kind: DeploymentConfig
+  apiVersion: apps.openshift.io/v1
+  metadata:
+    annotations:
+    labels:
+      app: usersdb
+    name: usersdb
+  spec:
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      app: usersdb
+      deploymentconfig: usersdb
+    strategy:
+      activeDeadlineSeconds: 21600
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        annotations:
+        labels:
+          app: usersdb
+          deploymentconfig: usersdb
+      spec:
+        containers:
+        - env:
+          - name: MYSQL_DATABASE
+            value: usersdb
+          - name: MYSQL_PASSWORD
+            value: ${PASSWORD}
+          - name: MYSQL_USER
+            value: usersapp
+          imagePullPolicy: IfNotPresent
+          name: usersdb
+          ports:
+          - containerPort: 3306
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /var/lib/mysql/data
+            name: usersdb-volume-1
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - name: usersdb-volume-1
+          persistentVolumeClaim:
+            claimName: usersdb-claim
+    test: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - usersdb
+        from:
+          kind: ImageStreamTag
+          name: mysql:latest
+          namespace: openshift
+      type: ImageChange
+- kind: Service
+  apiVersion: v1
+  metadata:
+    annotations:
+    labels:
+      app: usersdb
+    name: usersdb
+  spec:
+    ports:
+    - name: 3306-tcp
+      port: 3306
+      protocol: TCP
+      targetPort: 3306
+    selector:
+      app: usersdb
+      deploymentconfig: usersdb
+    sessionAffinity: None
+    type: ClusterIP
 - kind: ImageStream
   apiVersion: image.openshift.io/v1
   metadata:
@@ -92,25 +180,25 @@ objects:
             persistentVolumeClaim:
               claimName: users-pvc
         containers:
-          - env:
-            - name: DATABASE_NAME
-              value: usersdb
-            - name: DATABASE_PASSWORD
-              value: ${PASSWORD}
-            - name: DATABASE_SERVICE_NAME
-              value: usersdb
-            - name: DATABASE_USER
-              value: usersapp
-          - name: ${APP_NAME}
-            ports:
-            - containerPort: 8080
-              protocol: TCP
-            - containerPort: 8443
-              protocol: TCP
-            resources: {}            
-            terminationMessagePath: /dev/termination-log
-            terminationMessagePolicy: File
-            imagePullPolicy: Always
+        - env:
+          - name: DATABASE_NAME
+            value: usersdb
+          - name: DATABASE_PASSWORD
+            value: ${PASSWORD}
+          - name: DATABASE_SERVICE_NAME
+            value: usersdb
+          - name: DATABASE_USER
+            value: usersapp
+        - name: ${APP_NAME}
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          - containerPort: 8443
+            protocol: TCP
+          resources: {}            
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: Always
         restartPolicy: Always
         terminationGracePeriodSeconds: 30
         dnsPolicy: ClusterFirst
@@ -164,94 +252,7 @@ objects:
         storage: 1Gi
     storageClassName: gp2
     volumeMode: Filesystem
-- kind: DeploymentConfig
-  apiVersion: apps.openshift.io/v1
-  metadata:
-    annotations:
-    labels:
-      app: usersdb
-    name: usersdb
-  spec:
-    replicas: 1
-    revisionHistoryLimit: 10
-    selector:
-      app: usersdb
-      deploymentconfig: usersdb
-    strategy:
-      activeDeadlineSeconds: 21600
-      resources: {}
-      rollingParams:
-        intervalSeconds: 1
-        maxSurge: 25%
-        maxUnavailable: 25%
-        timeoutSeconds: 600
-        updatePeriodSeconds: 1
-      type: Rolling
-    template:
-      metadata:
-        annotations:
-        labels:
-          app: usersdb
-          deploymentconfig: usersdb
-      spec:
-        containers:
-        - env:
-          - name: MYSQL_DATABASE
-            value: usersdb
-          - name: MYSQL_PASSWORD
-            value: ${PASSWORD}
-          - name: MYSQL_USER
-            value: usersapp
-          imagePullPolicy: IfNotPresent
-          name: usersdb
-          ports:
-          - containerPort: 3306
-            protocol: TCP
-          resources: {}
-          terminationMessagePath: /dev/termination-log
-          terminationMessagePolicy: File
-          volumeMounts:
-          - mountPath: /var/lib/mysql/data
-            name: usersdb-volume-1
-        dnsPolicy: ClusterFirst
-        restartPolicy: Always
-        schedulerName: default-scheduler
-        securityContext: {}
-        terminationGracePeriodSeconds: 30
-        volumes:
-        - name: usersdb-volume-1
-          persistentVolumeClaim:
-            claimName: usersdb-claim
-    test: false
-    triggers:
-    - type: ConfigChange
-    - imageChangeParams:
-        automatic: true
-        containerNames:
-        - usersdb
-        from:
-          kind: ImageStreamTag
-          name: mysql:latest
-          namespace: openshift
-      type: ImageChange
-- kind: Service
-  apiVersion: v1
-  metadata:
-    annotations:
-    labels:
-      app: usersdb
-    name: usersdb
-  spec:
-    ports:
-    - name: 3306-tcp
-      port: 3306
-      protocol: TCP
-      targetPort: 3306
-    selector:
-      app: usersdb
-      deploymentconfig: usersdb
-    sessionAffinity: None
-    type: ClusterIP
+
 parameters:
 - name: APP_NAME
   displayName: Application Name
