@@ -8,7 +8,7 @@ RUN chgrp -R 0 /app && \
 
 
 COPY requirements.txt .
-
+RUN apt-get install libmysqlclient-dev
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . /app

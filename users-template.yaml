@@ -176,6 +176,8 @@ objects:
           deploymentconfig: ${APP_NAME}
       spec:
         containers:
+        - name: ${APP_NAME}
+          image: ${APP_NAME}:latest
         - env:
           - name: DATABASE_NAME
             value: usersdb
@@ -185,7 +187,6 @@ objects:
             value: usersdb
           - name: DATABASE_USER
             value: usersapp
-        - name: ${APP_NAME}
           ports:
           - containerPort: 8080
             protocol: TCP
