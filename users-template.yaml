@@ -1,0 +1,270 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: users-app-template
+objects:
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    annotations:
+      description: Keeps track of changes in the application image
+    name: ${APP_NAME}    
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: ${APP_NAME}
+    namespace: ${PROJECT_NAME}
+    labels:
+      app: ${APP_NAME}
+  spec:
+    nodeSelector: null
+    output:
+      to:
+        kind: ImageStreamTag
+        name: '${APP_NAME}:latest'
+    successfulBuildsHistoryLimit: 5
+    failedBuildsHistoryLimit: 5
+    strategy:
+      type: Docker
+      dockerStrategy:
+        dockerfilePath: Dockerfile
+      postCommit: {}
+    source:
+      type: Git
+      git:
+        uri: ${APP_GIT_URL}
+        ref: ${BRANCH_NAME}
+      contextDir: /
+    triggers:
+      - type: Generic
+        generic:
+          secretReference:
+            name: ${APP_NAME}-generic-webhook-secret
+      - type: GitHub
+        github:
+          secretReference:
+            name: ${APP_NAME}-github-webhook-secret
+      - type: ConfigChange
+    runPolicy: Serial
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: ${APP_NAME}
+    namespace: ${PROJECT_NAME}
+    labels:
+      app: ${APP_NAME}
+  spec:
+    strategy:
+      type: Rolling
+      rollingParams:
+        updatePeriodSeconds: 1
+        intervalSeconds: 1
+        timeoutSeconds: 600
+        maxUnavailable: 25%
+        maxSurge: 25%
+      resources: {}
+      activeDeadlineSeconds: 21600  
+    triggers:
+      - type: ImageChange
+        imageChangeParams:
+          automatic: true
+          containerNames:
+            - ${APP_NAME}
+          from:
+            kind: ImageStreamTag
+            namespace: ${PROJECT_NAME}
+            name: '${APP_NAME}:latest'
+      - type: ConfigChange
+    replicas: 1
+    revisionHistoryLimit: 10
+    test: false
+    selector:
+      app: ${APP_NAME}
+      deploymentconfig: ${APP_NAME}
+    template:
+      metadata:
+        labels:
+          app: ${APP_NAME}
+          deploymentconfig: ${APP_NAME}
+      spec:
+        volumes:
+          - name: users-pvc
+            persistentVolumeClaim:
+              claimName: users-pvc
+        containers:
+          - env:
+            - name: DATABASE_NAME
+              value: usersdb
+            - name: DATABASE_PASSWORD
+              value: ${PASSWORD}
+            - name: DATABASE_SERVICE_NAME
+              value: usersdb
+            - name: DATABASE_USER
+              value: usersapp
+          - name: ${APP_NAME}
+            ports:
+            - containerPort: 8080
+              protocol: TCP
+            - containerPort: 8443
+              protocol: TCP
+            resources: {}            
+            terminationMessagePath: /dev/termination-log
+            terminationMessagePolicy: File
+            imagePullPolicy: Always
+        restartPolicy: Always
+        terminationGracePeriodSeconds: 30
+        dnsPolicy: ClusterFirst
+        securityContext: {}
+        schedulerName: default-scheduler
+- kind: Service
+  apiVersion: v1
+  metadata:
+    annotations:
+    name: ${APP_NAME}
+    namespace: ${PROJECT_NAME}
+    labels:
+      app: ${APP_NAME}
+  spec:
+    ports:
+    - name: 8080-tcp
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+    selector:
+      app: ${APP_NAME}
+      deploymentconfig: ${APP_NAME}
+    type: ClusterIP
+    sessionAffinity: None
+- kind: Route
+  apiVersion: route.openshift.io/v1
+  metadata:
+    name: ${APP_NAME}
+    namespace: ${PROJECT_NAME}
+    labels:
+      app: ${APP_NAME}
+    annotations:
+  spec:
+    to:
+      kind: Service
+      name: ${APP_NAME}
+      weight: 100
+    port:
+      targetPort: 8080-tcp
+  wildcardPolicy: None
+- kind: PersistentVolumeClaim
+  metadata:
+    annotations:
+    name: usersdb-claim
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 1Gi
+    storageClassName: gp2
+    volumeMode: Filesystem
+- kind: DeploymentConfig
+  metadata:
+    annotations:
+    labels:
+      app: usersdb
+    name: usersdb
+  spec:
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      app: usersdb
+      deploymentconfig: usersdb
+    strategy:
+      activeDeadlineSeconds: 21600
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        annotations:
+        labels:
+          app: usersdb
+          deploymentconfig: usersdb
+      spec:
+        containers:
+        - env:
+          - name: MYSQL_DATABASE
+            value: usersdb
+          - name: MYSQL_PASSWORD
+            value: ${PASSWORD}
+          - name: MYSQL_USER
+            value: usersapp
+          imagePullPolicy: IfNotPresent
+          name: usersdb
+          ports:
+          - containerPort: 3306
+            protocol: TCP
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /var/lib/mysql/data
+            name: usersdb-volume-1
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - name: usersdb-volume-1
+          persistentVolumeClaim:
+            claimName: usersdb-claim
+    test: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - usersdb
+        from:
+          kind: ImageStreamTag
+          name: mysql:latest
+          namespace: openshift
+      type: ImageChange
+- kind: Service
+  metadata:
+    annotations:
+    labels:
+      app: usersdb
+    name: usersdb
+  spec:
+    ports:
+    - name: 3306-tcp
+      port: 3306
+      protocol: TCP
+      targetPort: 3306
+    selector:
+      app: usersdb
+      deploymentconfig: usersdb
+    sessionAffinity: None
+    type: ClusterIP
+parameters:
+- name: APP_NAME
+  displayName: Application Name
+  required: true 
+- name: PROJECT_NAME
+  displayName: Project Name
+  required: true 
+- name: APP_GIT_URL
+  displayName: Application Source Git URL
+  required: true
+- name: BRANCH_NAME
+  displayName: Branch Name
+  required: true 
+  value: master
+- name: PASSWORD
+  displayName: Database Password
+  description: Password to access the database
+  generate: expression
+  from: '[a-zA-Z0-9]{16}'
