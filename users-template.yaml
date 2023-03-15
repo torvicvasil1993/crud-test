@@ -134,19 +134,19 @@ objects:
             name: ${APP_NAME}-github-webhook-secret
       - type: ConfigChange
     runPolicy: Serial
-- kind: DeploymentConfig
-  apiVersion: apps.openshift.io/v1
+- apiVersion: apps.openshift.io/v1
+  kind: DeploymentConfig
   metadata:
     annotations:
     labels:
-      app: usersapp
-    name: usersapp
+      app: ${APP_NAME}
+    name: ${APP_NAME}
   spec:
     replicas: 1
     revisionHistoryLimit: 10
     selector:
-      app: usersapp
-      deploymentconfig: usersapp
+      app: ${APP_NAME}
+      deploymentconfig: ${APP_NAME}
     strategy:
       activeDeadlineSeconds: 21600
       resources: {}
@@ -161,8 +161,8 @@ objects:
       metadata:
         annotations:
         labels:
-          app: usersapp
-          deploymentconfig: usersapp
+          app: ${APP_NAME}
+          deploymentconfig: ${APP_NAME}
       spec:
         containers:
         - env:
@@ -173,9 +173,9 @@ objects:
           - name: DATABASE_SERVICE_NAME
             value: usersdb
           - name: DATABASE_USER
-            value: usersapp
+            value: ${APP_NAME}
           imagePullPolicy: Always
-          name: usersapp
+          name: ${APP_NAME}
           ports:
           - containerPort: 8080
             protocol: TCP
@@ -195,10 +195,10 @@ objects:
     - imageChangeParams:
         automatic: true
         containerNames:
-        - quotesapi
+        - ${APP_NAME}
         from:
           kind: ImageStreamTag
-          name: quotesapi:latest
+          name: ${APP_NAME}:latest
       type: ImageChange  
 - kind: Service
   apiVersion: v1
