@@ -91,6 +91,44 @@ objects:
       deploymentconfig: usersdb
     sessionAffinity: None
     type: ClusterIP
+- kind: ConfigMap
+  apiVersion: v1
+  metadata:
+    name: mysql-initdb-configmap
+  data:
+    create-users-table.sql: |
+      CREATE TABLE users (
+        id INT(11) NOT NULL AUTO_INCREMENT,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        PRIMARY KEY (id)
+      );
+- kind: Job
+  apiVersion: batch/v1
+  metadata:
+    name: mysql-initdb
+  spec:
+    template:
+      spec:
+        containers:
+        - name: usersdb
+          image: mysql:latest
+          command: ["sh", "-c", "mysql -h usersdb -u $(MYSQL_USER) -p$(MYSQL_PASSWORD) $(MYSQL_DATABASE) < /mnt/sql/create-users-table.sql"]
+          env:
+          - name: MYSQL_USER
+            value: "${APP_NAME}"
+          - name: MYSQL_PASSWORD
+            value: "${PASSWORD}"
+          - name: MYSQL_DATABASE
+            value: "usersdb"
+          volumeMounts:
+          - name: sql-volume
+            mountPath: /mnt/sql
+        restartPolicy: Never
+        volumes:
+        - name: sql-volume
+          configMap:
+            name: mysql-initdb-configmap
 - kind: ImageStream
   apiVersion: image.openshift.io/v1
   metadata:
@@ -134,8 +172,8 @@ objects:
             name: ${APP_NAME}-github-webhook-secret
       - type: ConfigChange
     runPolicy: Serial
-- apiVersion: apps.openshift.io/v1
-  kind: DeploymentConfig
+- kind: DeploymentConfig
+  apiVersion: apps.openshift.io/v1
   metadata:
     annotations:
     labels:
