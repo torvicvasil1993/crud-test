@@ -151,11 +151,11 @@ objects:
     port:
       targetPort: 8080-tcp
   wildcardPolicy: None
-- apiVersion: v1
-  kind: PersistentVolumeClaim
+- kind: PersistentVolumeClaim
+  apiVersion: v1
   metadata:
     annotations:
-    name: usersdb-claim
+    name: users-db-claim
   spec:
     accessModes:
     - ReadWriteOnce
