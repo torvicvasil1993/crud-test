@@ -18,7 +18,10 @@ def index():
     db = get_db()
     cursor = db.cursor()
     cursor.execute("SELECT * FROM users")
-    users = cursor.fetchall()
+    columns = [col[0] for col in cursor.description]
+    # Fetch all rows and store them in a list of dictionaries
+    rows = cursor.fetchall()
+    users = [dict(zip(columns, row)) for row in rows]
     cursor.close()
     db.close()
     return jsonify(users)
